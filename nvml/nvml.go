@@ -11,6 +11,22 @@ import (
 	"unsafe"
 )
 
+// NVML result codes
+const (
+	Success            = "Success"
+	Uninitialized      = "Uninitialized"
+	InvalidArgument    = "InvalidArgument"
+	NotSupported       = "NotSupported"
+	NoPermission       = "NoPermission"
+	AlreadyInitialized = "AlreadyInitialized"
+	NotFound           = "NotFound"
+	InsufficientSize   = "InsufficientSize"
+	InsufficientPower  = "InsufficientPower"
+	DriverNotLoaded    = "DriverNotLoaded"
+	Timeout            = "Timeout"
+	Unknown            = "Unknown"
+)
+
 type ComputeMode C.nvmlComputeMode_t
 type Feature uint
 type ECCBitType uint
@@ -26,31 +42,32 @@ type Result struct {
 func (r Result) String() string {
 	switch r.code {
 	case 0:
-		return "Success"
+		return Success
 	case 1:
-		return "Uninitialized"
+		return Uninitialized
 	case 2:
-		return "InvalidArgument"
+		return InvalidArgument
 	case 3:
-		return "NotSupported"
+		return NotSupported
 	case 4:
-		return "NoPermission"
+		return NoPermission
 	case 5:
-		return "AlreadyInitialized"
+		return AlreadyInitialized
 	case 6:
-		return "NotFound"
+		return NotFound
 	case 7:
-		return "InsufficientSize"
+		return InsufficientSize
 	case 8:
-		return "InsufficientPower"
+		return InsufficientPower
 	case 9:
-		return "DriverNotLoaded"
+		return DriverNotLoaded
 	case 10:
-		return "Timeout"
+		return Timeout
 	case 99:
-		return "Unknown"
+		return Unknown
+	default:
+		return Unknown
 	}
-	return "UnknownError"
 }
 
 func (r Result) Error() string {
@@ -190,5 +207,11 @@ func DevicePerformanceState(dh DeviceHandle) (PState, error) {
 func DeviceFanSpeed(dh DeviceHandle) (uint, error) {
 	var speed C.uint
 	r := NewResult(C.nvmlDeviceGetFanSpeed(dh.handle, &speed))
-	return uint(speed), r
+	if r != nil {
+		// Suppress not supported fan speed errors.
+		if r.Error() != NotSupported {
+			return uint(speed), r
+		}
+	}
+	return uint(speed), nil
 }
